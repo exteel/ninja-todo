@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Ninja Todo — Вхід</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        :root {
+            --orange: #ff6b2b;
+            --orange-glow: rgba(255,107,43,0.35);
+            --bg: #0a0a12;
+            --card: #1a1428;
+            --border: rgba(255,150,80,0.12);
+            --text: #f0e6d3;
+            --muted: #5c5060;
+            --font: 'Inter', -apple-system, sans-serif;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            overflow: hidden;
+        }
+
+        /* Leaves */
+        .particles { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+        .leaf { position:absolute; font-size:1.3rem; opacity:0.2; animation:leafFall linear infinite; }
+        .leaf-1{left:8%;animation-duration:12s;animation-delay:0s;}
+        .leaf-2{left:28%;animation-duration:17s;animation-delay:4s;font-size:1rem;}
+        .leaf-3{left:52%;animation-duration:14s;animation-delay:7s;}
+        .leaf-4{left:74%;animation-duration:19s;animation-delay:2s;font-size:1.1rem;}
+        .leaf-5{left:91%;animation-duration:13s;animation-delay:9s;font-size:0.9rem;}
+        @keyframes leafFall {
+            0%{transform:translateY(-60px) rotate(0deg);opacity:0;}
+            10%{opacity:0.25;}
+            90%{opacity:0.15;}
+            100%{transform:translateY(100vh) rotate(720deg) translateX(-60px);opacity:0;}
+        }
+
+        /* Card */
+        .card {
+            position: relative;
+            z-index: 1;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px 36px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: fadeUp 0.5s ease;
+        }
+        @keyframes fadeUp {
+            from{opacity:0;transform:translateY(24px);}
+            to{opacity:1;transform:translateY(0);}
+        }
+
+        /* Logo */
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .logo-symbol {
+            font-size: 3rem;
+            color: var(--orange);
+            text-shadow: 0 0 30px var(--orange-glow);
+            animation: pulse 3s ease-in-out infinite;
+            display: block;
+            margin-bottom: 10px;
+        }
+        @keyframes pulse {
+            0%,100%{text-shadow:0 0 20px var(--orange-glow);}
+            50%{text-shadow:0 0 40px var(--orange-glow),0 0 80px rgba(255,107,43,0.1);}
+        }
+        .logo h1 {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--orange);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px var(--orange-glow);
+        }
+        .logo p {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        /* Form */
+        .form-label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .code-input {
+            width: 100%;
+            padding: 16px 18px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            font-family: var(--font);
+            letter-spacing: 4px;
+            text-align: center;
+            text-transform: uppercase;
+            background: #0f0f1a;
+            color: var(--text);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            margin-bottom: 16px;
+        }
+        .code-input:focus {
+            border-color: var(--orange);
+            box-shadow: 0 0 0 4px var(--orange-glow);
+        }
+        .code-input::placeholder {
+            color: var(--muted);
+            letter-spacing: 2px;
+            font-size: 1rem;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #ff6b2b, #e04500);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: var(--font);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 4px 20px var(--orange-glow);
+            transition: all 0.25s ease;
+        }
+        .btn-login:hover {
+            background: linear-gradient(135deg, #ff8c42, #ff6b2b);
+            box-shadow: 0 6px 32px rgba(255,107,43,0.5);
+            transform: translateY(-2px);
+        }
+        .btn-login:active { transform: scale(0.97); }
+
+        /* Error */
+        .error {
+            background: rgba(192,57,43,0.12);
+            border: 1px solid rgba(192,57,43,0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 0.88rem;
+            color: #e74c3c;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        /* Hint */
+        .hint {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.78rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 24px 0;
+        }
+
+        /* SVG konoha */
+        .konoha-wrap {
+            display: flex;
+            justify-content: center;
+            margin-top: 24px;
+            opacity: 0.2;
+        }
+
+        @media (max-width: 420px) {
+            .card { padding: 32px 24px; }
+            .logo h1 { font-size: 1.3rem; }
+        }
+    </style>
+
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#ff6b2b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ninja Todo">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+</head>
+<body>
+
+<div class="particles">
+    <div class="leaf leaf-1">🍃</div>
+    <div class="leaf leaf-2">🍂</div>
+    <div class="leaf leaf-3">🍃</div>
+    <div class="leaf leaf-4">🍂</div>
+    <div class="leaf leaf-5">🍃</div>
+</div>
+
+<div class="card">
+    <div class="logo">
+        <span class="logo-symbol">&#x2726;</span>
+        <h1>忍 Ninja Todo</h1>
+        <p>Введіть ваш код доступу</p>
+    </div>
+
+    {% if error %}
+    <div class="error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+        <label class="form-label" for="code">Код ніндзя</label>
+        <input
+            type="text"
+            id="code"
+            name="code"
+            class="code-input"
+            placeholder="XXXXXXXX"
+            maxlength="8"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            autofocus
+            required
+        />
+        <button type="submit" class="btn-login">&#x2726; Увійти</button>
+    </form>
+
+    <div class="divider"></div>
+
+    <div class="hint">
+        Не маєте коду? Зверніться до адміністратора.<br>
+        Ваш код — це ваш унікальний доступ до місій.
+    </div>
+
+    <div class="konoha-wrap">
+        <svg viewBox="0 0 100 100" width="48" height="48">
+            <circle cx="50" cy="50" r="20" fill="none" stroke="#ff6b2b" stroke-width="3"/>
+            <path d="M50 30 C50 30, 35 50, 50 70 C65 50, 50 30, 50 30" fill="none" stroke="#ff6b2b" stroke-width="2.5"/>
+            <line x1="50" y1="14" x2="50" y2="30" stroke="#ff6b2b" stroke-width="2.5"/>
+        </svg>
+    </div>
+</div>
+
+<script>
+    // Auto uppercase input
+    document.getElementById('code').addEventListener('input', function() {
+        const pos = this.selectionStart;
+        this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        this.setSelectionRange(pos, pos);
+    });
+</script>
+
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(r => console.log('SW registered'))
+                .catch(e => console.warn('SW failed:', e));
+        });
+    }
+    </script>
+</body>
+</html>

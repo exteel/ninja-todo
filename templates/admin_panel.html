@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Адмін панель — Ninja Todo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+        :root{
+            --orange:#ff6b2b;
+            --orange-glow:rgba(255,107,43,0.3);
+            --bg:#0a0a12;
+            --bg2:#121222;
+            --card:#1a1428;
+            --card-hover:#241e36;
+            --border:rgba(255,150,80,0.08);
+            --border-active:rgba(255,107,43,0.25);
+            --text:#f0e6d3;
+            --muted:#5c5060;
+            --secondary:#a89880;
+            --green:#27ae60;
+            --red:#e74c3c;
+            --red-glow:rgba(231,76,60,0.2);
+            --font:'Inter',-apple-system,sans-serif;
+            --radius:14px;
+        }
+        body{
+            font-family:var(--font);
+            background:var(--bg);
+            color:var(--text);
+            min-height:100vh;
+        }
+
+        /* Header */
+        .header{
+            background:linear-gradient(135deg,#1a0a00,#2d1200,#1a0a00);
+            padding:20px 24px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            border-bottom:2px solid;
+            border-image:linear-gradient(90deg,transparent,var(--orange),transparent) 1;
+            position:sticky;
+            top:0;
+            z-index:100;
+        }
+        .header-left{
+            display:flex;
+            align-items:center;
+            gap:12px;
+        }
+        .header-icon{font-size:1.6rem;}
+        .header h1{
+            font-size:1.2rem;
+            font-weight:800;
+            color:var(--orange);
+            letter-spacing:2px;
+            text-transform:uppercase;
+            text-shadow:0 0 15px var(--orange-glow);
+        }
+        .header-actions{
+            display:flex;
+            gap:10px;
+            align-items:center;
+        }
+        .btn{
+            border:none;
+            cursor:pointer;
+            border-radius:10px;
+            font-family:var(--font);
+            font-weight:600;
+            transition:all 0.2s ease;
+            text-decoration:none;
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            padding:9px 18px;
+            font-size:0.85rem;
+        }
+        .btn-orange{
+            background:linear-gradient(135deg,#ff6b2b,#e04500);
+            color:#fff;
+            box-shadow:0 4px 16px var(--orange-glow);
+        }
+        .btn-orange:hover{
+            background:linear-gradient(135deg,#ff8c42,#ff6b2b);
+            transform:translateY(-1px);
+            box-shadow:0 6px 24px rgba(255,107,43,0.4);
+        }
+        .btn-ghost{
+            background:transparent;
+            color:var(--secondary);
+            border:1px solid var(--border-active);
+        }
+        .btn-ghost:hover{color:var(--text);background:var(--card);}
+        .btn-danger{
+            background:var(--red-glow);
+            color:var(--red);
+            border:1px solid rgba(231,76,60,0.2);
+            padding:7px 12px;
+            font-size:0.8rem;
+        }
+        .btn-danger:hover{background:var(--red);color:#fff;}
+
+        /* Container */
+        .container{
+            max-width:900px;
+            margin:0 auto;
+            padding:32px 24px;
+        }
+
+        /* Stats row */
+        .stats-row{
+            display:grid;
+            grid-template-columns:repeat(3,1fr);
+            gap:12px;
+            margin-bottom:32px;
+        }
+        .stat-card{
+            background:var(--card);
+            border:1px solid var(--border);
+            border-radius:var(--radius);
+            padding:16px 20px;
+            display:flex;
+            align-items:center;
+            gap:14px;
+        }
+        .stat-emoji{font-size:1.8rem;}
+        .stat-val{
+            font-size:1.6rem;
+            font-weight:800;
+            display:block;
+            line-height:1;
+        }
+        .stat-lbl{
+            font-size:0.72rem;
+            color:var(--secondary);
+            text-transform:uppercase;
+            letter-spacing:0.5px;
+            font-weight:600;
+        }
+
+        /* Create form */
+        .create-card{
+            background:var(--card);
+            border:1px solid var(--border-active);
+            border-radius:var(--radius);
+            padding:24px;
+            margin-bottom:28px;
+        }
+        .create-card h2{
+            font-size:1rem;
+            font-weight:700;
+            color:var(--orange);
+            margin-bottom:16px;
+            display:flex;
+            align-items:center;
+            gap:8px;
+        }
+        .create-form{
+            display:flex;
+            gap:10px;
+            align-items:flex-end;
+        }
+        .form-group{
+            flex:1;
+            display:flex;
+            flex-direction:column;
+            gap:6px;
+        }
+        .form-label{
+            font-size:0.72rem;
+            font-weight:700;
+            text-transform:uppercase;
+            letter-spacing:1px;
+            color:var(--muted);
+        }
+        .form-input{
+            padding:12px 14px;
+            font-size:0.95rem;
+            font-family:var(--font);
+            background:#0f0f1a;
+            color:var(--text);
+            border:2px solid var(--border);
+            border-radius:10px;
+            outline:none;
+            transition:border-color 0.3s;
+        }
+        .form-input:focus{border-color:var(--orange);}
+
+        /* Users table */
+        .section-title{
+            font-size:0.85rem;
+            font-weight:700;
+            text-transform:uppercase;
+            letter-spacing:1.5px;
+            color:var(--muted);
+            margin-bottom:12px;
+            display:flex;
+            align-items:center;
+            gap:8px;
+        }
+        .users-list{
+            display:flex;
+            flex-direction:column;
+            gap:8px;
+        }
+        .user-card{
+            background:var(--card);
+            border:1px solid var(--border);
+            border-radius:var(--radius);
+            padding:16px 20px;
+            display:flex;
+            align-items:center;
+            gap:16px;
+            transition:all 0.2s;
+        }
+        .user-card:hover{
+            background:var(--card-hover);
+            border-color:var(--border-active);
+        }
+        .user-avatar{
+            width:42px;
+            height:42px;
+            border-radius:50%;
+            background:linear-gradient(135deg,#ff6b2b,#e04500);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:1.2rem;
+            flex-shrink:0;
+            font-weight:800;
+            color:#fff;
+        }
+        .user-info{flex:1;min-width:0;}
+        .user-name{
+            font-size:0.95rem;
+            font-weight:700;
+            color:var(--text);
+            margin-bottom:3px;
+        }
+        .user-meta{
+            font-size:0.78rem;
+            color:var(--secondary);
+            display:flex;
+            align-items:center;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+        .code-badge{
+            background:#0f0f1a;
+            border:1px solid var(--border-active);
+            border-radius:6px;
+            padding:3px 10px;
+            font-size:0.85rem;
+            font-weight:800;
+            letter-spacing:3px;
+            color:var(--orange);
+            font-family:monospace;
+            cursor:pointer;
+            transition:all 0.2s;
+            user-select:all;
+        }
+        .code-badge:hover{
+            background:var(--orange);
+            color:#fff;
+        }
+        .code-badge.copied{
+            background:var(--green);
+            color:#fff;
+            letter-spacing:1px;
+        }
+        .user-todos{
+            display:flex;
+            gap:8px;
+            align-items:center;
+        }
+        .todo-badge{
+            font-size:0.75rem;
+            font-weight:700;
+            padding:3px 8px;
+            border-radius:6px;
+        }
+        .todo-total{background:rgba(52,152,219,0.15);color:#3498db;}
+        .todo-done{background:rgba(39,174,96,0.15);color:var(--green);}
+
+        .empty-state{
+            text-align:center;
+            padding:48px 20px;
+            color:var(--muted);
+        }
+        .empty-state .icon{font-size:3rem;margin-bottom:12px;display:block;}
+
+        /* Confirm overlay */
+        .confirm-overlay{
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,0.7);
+            backdrop-filter:blur(4px);
+            z-index:500;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:16px;
+            opacity:0;
+            pointer-events:none;
+            transition:opacity 0.3s;
+        }
+        .confirm-overlay.show{opacity:1;pointer-events:all;}
+        .confirm-box{
+            background:var(--card);
+            border:1px solid var(--border-active);
+            border-radius:var(--radius);
+            padding:28px;
+            max-width:340px;
+            width:100%;
+            text-align:center;
+            transform:scale(0.95);
+            transition:transform 0.3s;
+        }
+        .confirm-overlay.show .confirm-box{transform:scale(1);}
+        .confirm-box h3{font-size:1.1rem;font-weight:700;margin-bottom:10px;}
+        .confirm-box p{font-size:0.9rem;color:var(--secondary);margin-bottom:20px;line-height:1.5;}
+        .confirm-actions{display:flex;gap:10px;justify-content:center;}
+
+        @media(max-width:600px){
+            .stats-row{grid-template-columns:repeat(3,1fr);gap:8px;}
+            .stat-card{padding:12px;flex-direction:column;text-align:center;gap:6px;}
+            .create-form{flex-direction:column;}
+            .user-card{flex-wrap:wrap;gap:10px;}
+            .header h1{font-size:1rem;}
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+    <div class="header-left">
+        <span class="header-icon">🔐</span>
+        <h1>Адмін панель</h1>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('index') }}" class="btn btn-ghost">← Додаток</a>
+        <a href="{{ url_for('admin_logout') }}" class="btn btn-ghost">Вийти</a>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <span class="stat-emoji">👥</span>
+            <div>
+                <span class="stat-val">{{ users|length }}</span>
+                <span class="stat-lbl">Ніндзя</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-emoji">📜</span>
+            <div>
+                <span class="stat-val">{{ users|sum(attribute='total_todos') }}</span>
+                <span class="stat-lbl">Місій</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-emoji">⚔️</span>
+            <div>
+                <span class="stat-val">{{ users|sum(attribute='done_todos') }}</span>
+                <span class="stat-lbl">Виконано</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create user -->
+    <div class="create-card">
+        <h2>➕ Новий ніндзя</h2>
+        <form class="create-form" method="POST" action="{{ url_for('admin_create') }}">
+            <div class="form-group">
+                <label class="form-label">Ім'я ніндзя</label>
+                <input type="text" name="name" class="form-input" placeholder="Наприклад: Саске" maxlength="50" />
+            </div>
+            <button type="submit" class="btn btn-orange">&#x2726; Створити код</button>
+        </form>
+    </div>
+
+    <!-- Users list -->
+    <div class="section-title">👥 Всі користувачі</div>
+
+    {% if users %}
+    <div class="users-list">
+        {% for user in users %}
+        <div class="user-card">
+            <div class="user-avatar">{{ user.name[0] | upper }}</div>
+            <div class="user-info">
+                <div class="user-name">{{ user.name }}</div>
+                <div class="user-meta">
+                    <span
+                        class="code-badge"
+                        onclick="copyCode(this, '{{ user.code }}')"
+                        title="Натисни щоб скопіювати"
+                    >{{ user.code }}</span>
+                    <span>📅 {{ user.created_at[:10] }}</span>
+                </div>
+            </div>
+            <div class="user-todos">
+                <span class="todo-badge todo-total">📜 {{ user.total_todos }}</span>
+                <span class="todo-badge todo-done">✓ {{ user.done_todos|default(0) }}</span>
+            </div>
+            <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.id) }}" onsubmit="return confirmDelete(event, '{{ user.name }}')">
+                <button type="submit" class="btn btn-danger">🗑</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <span class="icon">🌀</span>
+        <p>Ще немає жодного ніндзя.<br>Створи першого вище!</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Confirm delete overlay -->
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <h3>⚠️ Видалити ніндзя?</h3>
+        <p id="confirmMsg"></p>
+        <div class="confirm-actions">
+            <button class="btn btn-ghost" onclick="closeConfirm()">Скасувати</button>
+            <button class="btn btn-danger" id="confirmOkBtn">🗑 Видалити</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Copy code to clipboard
+    function copyCode(el, code) {
+        navigator.clipboard.writeText(code).then(() => {
+            el.textContent = 'Скопійовано!';
+            el.classList.add('copied');
+            setTimeout(() => {
+                el.textContent = code;
+                el.classList.remove('copied');
+            }, 1500);
+        });
+    }
+
+    // Confirm delete
+    let pendingForm = null;
+
+    function confirmDelete(e, name) {
+        e.preventDefault();
+        pendingForm = e.target;
+        document.getElementById('confirmMsg').textContent =
+            `Видалити "${name}"? Всі їхні місії також будуть видалені.`;
+        document.getElementById('confirmOverlay').classList.add('show');
+        document.getElementById('confirmOkBtn').onclick = () => {
+            pendingForm.submit();
+        };
+        return false;
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmOverlay').classList.remove('show');
+        pendingForm = null;
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeConfirm();
+    });
+</script>
+</body>
+</html>

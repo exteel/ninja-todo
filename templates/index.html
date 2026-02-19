@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ninja Todo - Шлях Ніндзя</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#ff6b2b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ninja Todo">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+</head>
+<body>
+
+
+
+    <!-- Floating leaves -->
+    <div class="particles">
+        <div class="leaf leaf-1">🍃</div>
+        <div class="leaf leaf-2">🍂</div>
+        <div class="leaf leaf-3">🍃</div>
+        <div class="leaf leaf-4">🍂</div>
+        <div class="leaf leaf-5">🍃</div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-bg">
+            <div class="cloud cloud-1"></div>
+            <div class="cloud cloud-2"></div>
+            <div class="cloud cloud-3"></div>
+        </div>
+        <div class="header-content">
+            <div class="konoha-symbol">&#x2726;</div>
+            <h1>忍 NINJA TODO</h1>
+            <p class="header-sub">Шлях ніндзя починається з першого кроку <span class="kanji">火影</span></p>
+        </div>
+        <div class="header-user">
+            <span class="user-name">👤 {{ user.name }}</span>
+            {% if user.is_admin %}
+            <a href="{{ url_for('admin_panel') }}" class="admin-btn" title="Адмін панель" target="_blank">🔐</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="logout-btn" title="Вийти">⏏</a>
+        </div>
+        <div class="headband">
+            <div class="headband-plate">
+                <svg class="konoha-svg" viewBox="0 0 100 100" width="22" height="22">
+                    <circle cx="50" cy="50" r="20" fill="none" stroke="currentColor" stroke-width="4"/>
+                    <path d="M50 30 C50 30, 35 50, 50 70 C65 50, 50 30, 50 30" fill="none" stroke="currentColor" stroke-width="3.5"/>
+                    <line x1="50" y1="14" x2="50" y2="30" stroke="currentColor" stroke-width="3"/>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- Rank -->
+        <div class="rank-badge" id="rankBadge">
+            <span class="rank-icon">{{ rank_icon }}</span>
+            <span class="rank-text">{{ rank_name }}</span>
+        </div>
+
+        <!-- Add form -->
+        <form class="add-form" id="addForm">
+            <div class="input-row">
+                <div class="input-wrapper">
+                    <span class="input-kunai">&#x2694;</span>
+                    <input type="text" id="todoText" placeholder="Нова місія ніндзя..." autocomplete="off" required maxlength="200" />
+                    <button type="button" class="voice-btn" id="voiceBtn" onclick="toggleVoice()" title="Голосовий ввід">
+                        <span id="voiceBtnIcon">🎤</span>
+                    </button>
+                </div>
+                <button type="submit" class="btn btn-add">
+                    <span class="btn-icon">&#x2726;</span>
+                    <span class="btn-label">Місія!</span>
+                </button>
+            </div>
+            <div class="input-extras">
+                <div class="select-wrapper">
+                    <label class="extra-label">Ранг</label>
+                    <select id="todoRank" class="select-rank">
+                        {% for r in ranks %}
+                        <option value="{{ r }}">{{ r }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="date-wrapper">
+                    <label class="extra-label">Дедлайн</label>
+                    <input type="date" id="todoDeadline" class="input-date" min="{{ today }}" />
+                </div>
+            </div>
+        </form>
+
+        <!-- Search & Filter -->
+        <div class="toolbar">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" class="search-input" placeholder="Пошук місій..." value="{{ search }}" />
+            </div>
+            <div class="filter-tabs">
+                <button class="tab {% if current_filter == 'all' %}active{% endif %}" onclick="setFilter('all')">Всі</button>
+                <button class="tab {% if current_filter == 'active' %}active{% endif %}" onclick="setFilter('active')">В бою</button>
+                <button class="tab {% if current_filter == 'done' %}active{% endif %}" onclick="setFilter('done')">Виконані</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats" id="statsBlock">
+            <div class="stat-card">
+                <span class="stat-emoji">📜</span>
+                <div class="stat-info">
+                    <span class="stat-value" id="statTotal">{{ stats.total }}</span>
+                    <span class="stat-label">Місій</span>
+                </div>
+            </div>
+            <div class="stat-card stat-done">
+                <span class="stat-emoji">⚔️</span>
+                <div class="stat-info">
+                    <span class="stat-value" id="statDone">{{ stats.done }}</span>
+                    <span class="stat-label">Виконано</span>
+                </div>
+            </div>
+            <div class="stat-card stat-pending">
+                <span class="stat-emoji">🎯</span>
+                <div class="stat-info">
+                    <span class="stat-value" id="statPending">{{ stats.pending }}</span>
+                    <span class="stat-label">В бою</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chakra bar -->
+        <div class="chakra-section" id="chakraSection" style="{% if stats.total == 0 %}display:none{% endif %}">
+            <div class="chakra-label" id="chakraLabel">Чакра: {{ ((stats.done / stats.total * 100) if stats.total > 0 else 0) | int }}%</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="chakraFill" style="width: {{ (stats.done / stats.total * 100) if stats.total > 0 else 0 }}%"></div>
+            </div>
+        </div>
+
+        <!-- Todo list -->
+        <ul class="todo-list" id="todoList">
+            {% for todo in todos %}
+            <li class="todo-item {% if todo.done %}done{% endif %} rank-{{ todo.rank }}" data-id="{{ todo.id }}" style="animation-delay: {{ loop.index0 * 0.04 }}s">
+                <button class="todo-checkbox" onclick="toggleTodo({{ todo.id }})" title="Змінити статус">
+                    {% if todo.done %}
+                        <span class="check-icon checked">&#x2726;</span>
+                    {% else %}
+                        <span class="check-icon">&#x25CB;</span>
+                    {% endif %}
+                </button>
+                <div class="todo-content">
+                    <span class="todo-text" ondblclick="startEdit({{ todo.id }})">{{ todo.text }}</span>
+                    <div class="todo-meta">
+                        <span class="todo-rank-badge rank-{{ todo.rank }}">{{ todo.rank }}</span>
+                        {% if todo.deadline %}
+                        <span class="todo-deadline {% if not todo.done and todo.deadline < today %}overdue{% endif %}">
+                            📅 {{ todo.deadline }}
+                        </span>
+                        {% endif %}
+                        {% if todo.done %}
+                            <span class="todo-status-done">Завершено ✓</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="todo-actions">
+                    <button class="btn btn-edit" onclick="startEdit({{ todo.id }})" title="Редагувати">✎</button>
+                    <button class="btn btn-delete" onclick="deleteTodo({{ todo.id }})" title="Видалити">&#x2716;</button>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Empty state -->
+        {% if not todos %}
+        <div class="empty" id="emptyState">
+            <div class="empty-icon">🌀</div>
+            <p>Місій поки немає</p>
+            <span class="empty-hint">Додай свою першу місію, ніндзя! Dattebayo!</span>
+        </div>
+        {% endif %}
+
+        <!-- Undo toast -->
+        <div class="toast" id="undoToast">
+            <span class="toast-text" id="undoText"></span>
+            <button class="toast-btn" id="undoBtn" onclick="undoDelete()">↩ Повернути</button>
+            <button class="toast-close" onclick="hideToast()">✕</button>
+        </div>
+
+    </main>
+
+    <!-- Edit modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>✎ Редагувати місію</h3>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId" />
+                <div class="form-group">
+                    <label class="form-label">Текст місії</label>
+                    <input type="text" id="editText" class="form-input" maxlength="200" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ранг</label>
+                        <select id="editRank" class="form-select">
+                            <option value="D">D</option>
+                            <option value="C">C</option>
+                            <option value="B">B</option>
+                            <option value="A">A</option>
+                            <option value="S">S</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Дедлайн</label>
+                        <input type="date" id="editDeadline" class="form-input" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="closeModal()">Скасувати</button>
+                <button class="btn btn-save" onclick="saveEdit()">💾 Зберегти</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h3>⚠️ Видалити місію?</h3>
+                <button class="modal-close" onclick="closeConfirm()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="confirm-text" id="confirmText"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="closeConfirm()">Скасувати</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn">🗑 Видалити</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <span>Зроблено в</span>
+        <span class="konoha-text">Конохі</span>
+        <span>🍥</span>
+        <span>на Flask</span>
+    </footer>
+
+    <script>
+    // ─── Sound effects ──────────────────────────────────────────────
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    function getCtx() {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        return audioCtx;
+    }
+
+    function playSound(type) {
+        try {
+            const ctx = getCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            gain.gain.value = 0.08;
+
+            if (type === 'add') {
+                osc.frequency.setValueAtTime(600, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+                osc.start(); osc.stop(ctx.currentTime + 0.2);
+            } else if (type === 'done') {
+                osc.frequency.setValueAtTime(500, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                osc.start(); osc.stop(ctx.currentTime + 0.3);
+            } else if (type === 'undone') {
+                osc.frequency.setValueAtTime(400, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+                osc.start(); osc.stop(ctx.currentTime + 0.2);
+            } else if (type === 'delete') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.25);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                osc.start(); osc.stop(ctx.currentTime + 0.3);
+            } else if (type === 'error') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(200, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+                osc.start(); osc.stop(ctx.currentTime + 0.15);
+            }
+        } catch (e) {}
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────
+    const today = '{{ today }}';
+    let deletedTodo = null;
+    let toastTimer = null;
+    let pendingDeleteId = null;
+
+    async function fetchJSON(url, opts = {}) {
+        const res = await fetch(url, {
+            headers: { 'Content-Type': 'application/json' },
+            ...opts
+        });
+        return { ok: res.ok, status: res.status, data: await res.json() };
+    }
+
+    function updateStats() {
+        fetchJSON('/api/stats').then(({ data }) => {
+            document.getElementById('statTotal').textContent = data.total;
+            document.getElementById('statDone').textContent = data.done;
+            document.getElementById('statPending').textContent = data.pending;
+            document.getElementById('rankBadge').innerHTML =
+                `<span class="rank-icon">${data.rank_icon}</span><span class="rank-text">${data.rank_name}</span>`;
+
+            const section = document.getElementById('chakraSection');
+            if (data.total > 0) {
+                section.style.display = '';
+                document.getElementById('chakraLabel').textContent = `Чакра: ${data.chakra}%`;
+                document.getElementById('chakraFill').style.width = `${data.chakra}%`;
+            } else {
+                section.style.display = 'none';
+            }
+        });
+    }
+
+    function todoHTML(t) {
+        const doneClass = t.done ? 'done' : '';
+        const checkIcon = t.done ? '<span class="check-icon checked">&#x2726;</span>' : '<span class="check-icon">&#x25CB;</span>';
+        const overdue = (!t.done && t.deadline && t.deadline < today) ? 'overdue' : '';
+        const deadlineHTML = t.deadline ? `<span class="todo-deadline ${overdue}">📅 ${t.deadline}</span>` : '';
+        const statusHTML = t.done ? '<span class="todo-status-done">Завершено ✓</span>' : '';
+
+        return `
+        <li class="todo-item ${doneClass} rank-${t.rank} todo-enter" data-id="${t.id}">
+            <button class="todo-checkbox" onclick="toggleTodo(${t.id})" title="Змінити статус">${checkIcon}</button>
+            <div class="todo-content">
+                <span class="todo-text" ondblclick="startEdit(${t.id})">${escapeHTML(t.text)}</span>
+                <div class="todo-meta">
+                    <span class="todo-rank-badge rank-${t.rank}">${t.rank}</span>
+                    ${deadlineHTML}
+                    ${statusHTML}
+                </div>
+            </div>
+            <div class="todo-actions">
+                <button class="btn btn-edit" onclick="startEdit(${t.id})" title="Редагувати">✎</button>
+                <button class="btn btn-delete" onclick="deleteTodo(${t.id})" title="Видалити">&#x2716;</button>
+            </div>
+        </li>`;
+    }
+
+    function escapeHTML(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    // ─── Add todo ────────────────────────────────────────────────────
+    document.getElementById('addForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = document.getElementById('todoText').value.trim();
+        const rank = document.getElementById('todoRank').value;
+        const deadline = document.getElementById('todoDeadline').value || null;
+
+        if (!text) return;
+
+        const { ok, data } = await fetchJSON('/api/add', {
+            method: 'POST',
+            body: JSON.stringify({ text, rank, deadline })
+        });
+
+        if (ok) {
+            playSound('add');
+            const list = document.getElementById('todoList');
+            const empty = document.getElementById('emptyState');
+            if (empty) empty.remove();
+
+            list.insertAdjacentHTML('afterbegin', todoHTML(data));
+            document.getElementById('todoText').value = '';
+            document.getElementById('todoDeadline').value = '';
+            document.getElementById('todoRank').value = 'D';
+            updateStats();
+        } else {
+            playSound('error');
+            alert(data.error || 'Помилка');
+        }
+    });
+
+    // ─── Toggle todo ─────────────────────────────────────────────────
+    async function toggleTodo(id) {
+        const { ok, data } = await fetchJSON(`/api/toggle/${id}`, { method: 'POST' });
+        if (!ok) return;
+
+        playSound(data.done ? 'done' : 'undone');
+        const li = document.querySelector(`[data-id="${id}"]`);
+        if (!li) return;
+
+        li.outerHTML = todoHTML(data);
+        updateStats();
+    }
+
+    // ─── Delete todo ─────────────────────────────────────────────────
+    function deleteTodo(id) {
+        const li = document.querySelector(`[data-id="${id}"]`);
+        const text = li ? li.querySelector('.todo-text').textContent : '';
+        pendingDeleteId = id;
+        document.getElementById('confirmText').textContent = `"${text}"`;
+        document.getElementById('confirmModal').classList.add('show');
+        document.getElementById('confirmDeleteBtn').onclick = () => confirmDelete(id);
+    }
+
+    async function confirmDelete(id) {
+        closeConfirm();
+        const li = document.querySelector(`[data-id="${id}"]`);
+        if (li) {
+            li.classList.add('todo-exit');
+            await new Promise(r => setTimeout(r, 300));
+        }
+
+        const { ok, data } = await fetchJSON(`/api/delete/${id}`, { method: 'DELETE' });
+        if (!ok) return;
+
+        playSound('delete');
+        if (li) li.remove();
+        deletedTodo = data.deleted;
+        showToast(`Місію "${data.deleted.text}" видалено`);
+        updateStats();
+
+        if (document.querySelectorAll('.todo-item').length === 0) {
+            document.getElementById('todoList').insertAdjacentHTML('afterend',
+                '<div class="empty" id="emptyState"><div class="empty-icon">🌀</div><p>Місій поки немає</p><span class="empty-hint">Додай свою першу місію, ніндзя! Dattebayo!</span></div>');
+        }
+    }
+
+    // ─── Undo ────────────────────────────────────────────────────────
+    function showToast(msg) {
+        const toast = document.getElementById('undoToast');
+        document.getElementById('undoText').textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(hideToast, 5000);
+    }
+
+    function hideToast() {
+        document.getElementById('undoToast').classList.remove('show');
+        clearTimeout(toastTimer);
+    }
+
+    async function undoDelete() {
+        if (!deletedTodo) return;
+        const t = deletedTodo;
+        const { ok, data } = await fetchJSON('/api/add', {
+            method: 'POST',
+            body: JSON.stringify({ text: t.text, rank: t.rank, deadline: t.deadline })
+        });
+        if (ok) {
+            if (t.done) {
+                await fetchJSON(`/api/toggle/${data.id}`, { method: 'POST' });
+            }
+            playSound('add');
+            hideToast();
+            location.reload();
+        }
+        deletedTodo = null;
+    }
+
+    // ─── Edit ────────────────────────────────────────────────────────
+    function startEdit(id) {
+        const li = document.querySelector(`[data-id="${id}"]`);
+        if (!li) return;
+
+        const text = li.querySelector('.todo-text').textContent;
+        const rankBadge = li.querySelector('.todo-rank-badge');
+        const rank = rankBadge ? rankBadge.textContent.trim() : 'D';
+        const deadlineEl = li.querySelector('.todo-deadline');
+        const deadline = deadlineEl ? deadlineEl.textContent.replace('📅', '').trim() : '';
+
+        document.getElementById('editId').value = id;
+        document.getElementById('editText').value = text;
+        document.getElementById('editRank').value = rank;
+        document.getElementById('editDeadline').value = deadline;
+        document.getElementById('editModal').classList.add('show');
+        document.getElementById('editText').focus();
+    }
+
+    function closeModal() {
+        document.getElementById('editModal').classList.remove('show');
+    }
+
+    async function saveEdit() {
+        const id = document.getElementById('editId').value;
+        const text = document.getElementById('editText').value.trim();
+        const rank = document.getElementById('editRank').value;
+        const deadline = document.getElementById('editDeadline').value || null;
+
+        if (!text) {
+            playSound('error');
+            return;
+        }
+
+        const { ok, data } = await fetchJSON(`/api/edit/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ text, rank, deadline })
+        });
+
+        if (ok) {
+            playSound('add');
+            closeModal();
+            const li = document.querySelector(`[data-id="${id}"]`);
+            if (li) li.outerHTML = todoHTML(data);
+        } else {
+            playSound('error');
+            alert(data.error || 'Помилка');
+        }
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmModal').classList.remove('show');
+    }
+
+    // ─── Filter & Search (AJAX, no reload) ────────────────────────
+    let currentFilter = '{{ current_filter }}';
+    let currentSearch = '{{ search }}';
+    let searchTimeout;
+
+    function setFilter(filter) {
+        currentFilter = filter;
+        document.querySelectorAll('.filter-tabs .tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        loadTodos();
+    }
+
+    async function loadTodos() {
+        const params = new URLSearchParams({ filter: currentFilter, search: currentSearch });
+        const { ok, data } = await fetchJSON('/api/todos?' + params.toString());
+        if (!ok) return;
+
+        const list = document.getElementById('todoList');
+        const emptyEl = document.getElementById('emptyState');
+
+        if (data.length === 0) {
+            list.innerHTML = '';
+            if (!emptyEl) {
+                list.insertAdjacentHTML('afterend',
+                    '<div class="empty" id="emptyState"><div class="empty-icon">🌀</div><p>Місій поки немає</p><span class="empty-hint">Додай свою першу місію, ніндзя! Dattebayo!</span></div>');
+            }
+        } else {
+            if (emptyEl) emptyEl.remove();
+            list.innerHTML = data.map((t, i) => {
+                const html = todoHTML(t);
+                return html.replace('todo-enter', `todo-enter" style="animation-delay:${i * 0.04}s`);
+            }).join('');
+        }
+        updateStats();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        currentSearch = e.target.value.trim();
+        searchTimeout = setTimeout(() => loadTodos(), 400);
+    });
+
+    // ─── Keyboard shortcuts ─────────────────────────────────────────
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            closeConfirm();
+            if (isListening) stopVoice();
+        }
+        if (e.key === 'Enter' && document.getElementById('editModal').classList.contains('show')) {
+            saveEdit();
+        }
+    });
+
+    // ─── Voice Input ─────────────────────────────────────────────────
+    let recognition = null;
+    let isListening = false;
+
+    function initVoice() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return null;
+        const r = new SpeechRecognition();
+        r.lang = 'uk-UA';
+        r.continuous = false;
+        r.interimResults = true;
+        r.maxAlternatives = 1;
+
+        r.onstart = () => {
+            isListening = true;
+            document.getElementById('voiceBtn').classList.add('listening');
+            document.getElementById('voiceBtnIcon').textContent = '🔴';
+            document.getElementById('todoText').placeholder = 'Говоріть...';
+        };
+
+        r.onresult = (e) => {
+            const transcript = Array.from(e.results)
+                .map(r => r[0].transcript).join('');
+            document.getElementById('todoText').value = transcript;
+            if (e.results[e.results.length - 1].isFinal) {
+                stopVoice();
+                playSound('add');
+            }
+        };
+
+        r.onerror = (e) => {
+            console.warn('Voice error:', e.error);
+            stopVoice();
+            if (e.error === 'not-allowed') {
+                alert('Дозвольте доступ до мікрофона в браузері!');
+            }
+        };
+
+        r.onend = () => { stopVoice(); };
+        return r;
+    }
+
+    function toggleVoice() {
+        if (isListening) {
+            stopVoice();
+        } else {
+            startVoice();
+        }
+    }
+
+    function startVoice() {
+        if (!recognition) recognition = initVoice();
+        if (!recognition) {
+            // iOS fallback - use input focus trick
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            if (isIOS) {
+                const input = document.getElementById('todoText');
+                input.setAttribute('x-webkit-speech', '');
+                input.focus();
+                // Show hint
+                showVoiceHint();
+            } else {
+                alert('Ваш браузер не підтримує голосовий ввід. Спробуйте Chrome на компютері.');
+            }
+            return;
+        }
+        try { recognition.start(); } catch(e) {}
+    }
+
+    function showVoiceHint() {
+        const hint = document.createElement('div');
+        hint.className = 'voice-hint-toast';
+        hint.innerHTML = '🎤 На iPhone: утримуй 🎤 на клавіатурі для голосового вводу';
+        document.body.appendChild(hint);
+        setTimeout(() => hint.classList.add('show'), 10);
+        setTimeout(() => {
+            hint.classList.remove('show');
+            setTimeout(() => hint.remove(), 400);
+        }, 4000);
+    }
+
+    function stopVoice() {
+        isListening = false;
+        document.getElementById('voiceBtn').classList.remove('listening');
+        document.getElementById('voiceBtnIcon').textContent = '🎤';
+        document.getElementById('todoText').placeholder = 'Нова місія ніндзя...';
+        try { if (recognition) recognition.stop(); } catch(e) {}
+    }
+
+
+    </script>
+
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(r => console.log('SW registered'))
+                .catch(e => console.warn('SW failed:', e));
+        });
+    }
+    </script>
+</body>
+</html>

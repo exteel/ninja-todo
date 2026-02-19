@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Адмін — Вхід</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+        :root{
+            --orange:#ff6b2b;
+            --orange-glow:rgba(255,107,43,0.35);
+            --bg:#0a0a12;
+            --card:#1a1428;
+            --border:rgba(255,150,80,0.12);
+            --text:#f0e6d3;
+            --muted:#5c5060;
+            --red:#e74c3c;
+            --font:'Inter',-apple-system,sans-serif;
+        }
+        body{
+            font-family:var(--font);
+            background:var(--bg);
+            color:var(--text);
+            min-height:100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:24px 16px;
+        }
+        .card{
+            background:var(--card);
+            border:1px solid var(--border);
+            border-radius:20px;
+            padding:40px 36px;
+            width:100%;
+            max-width:380px;
+            box-shadow:0 20px 60px rgba(0,0,0,0.5);
+            animation:fadeUp 0.4s ease;
+        }
+        @keyframes fadeUp{
+            from{opacity:0;transform:translateY(20px);}
+            to{opacity:1;transform:translateY(0);}
+        }
+        .logo{
+            text-align:center;
+            margin-bottom:32px;
+        }
+        .logo-icon{
+            font-size:2.5rem;
+            display:block;
+            margin-bottom:10px;
+        }
+        .logo h1{
+            font-size:1.4rem;
+            font-weight:800;
+            color:var(--orange);
+            letter-spacing:2px;
+            text-transform:uppercase;
+            text-shadow:0 0 20px var(--orange-glow);
+        }
+        .logo p{
+            font-size:0.8rem;
+            color:var(--muted);
+            margin-top:6px;
+        }
+        .label{
+            display:block;
+            font-size:0.72rem;
+            font-weight:700;
+            text-transform:uppercase;
+            letter-spacing:1px;
+            color:var(--muted);
+            margin-bottom:8px;
+        }
+        .input{
+            width:100%;
+            padding:14px 16px;
+            font-size:1rem;
+            font-family:var(--font);
+            background:#0f0f1a;
+            color:var(--text);
+            border:2px solid var(--border);
+            border-radius:12px;
+            outline:none;
+            transition:border-color 0.3s,box-shadow 0.3s;
+            margin-bottom:16px;
+        }
+        .input:focus{
+            border-color:var(--orange);
+            box-shadow:0 0 0 4px var(--orange-glow);
+        }
+        .btn{
+            width:100%;
+            padding:14px;
+            background:linear-gradient(135deg,#ff6b2b,#e04500);
+            color:#fff;
+            border:none;
+            border-radius:12px;
+            font-size:1rem;
+            font-weight:700;
+            font-family:var(--font);
+            letter-spacing:1px;
+            text-transform:uppercase;
+            cursor:pointer;
+            box-shadow:0 4px 20px var(--orange-glow);
+            transition:all 0.25s ease;
+        }
+        .btn:hover{
+            background:linear-gradient(135deg,#ff8c42,#ff6b2b);
+            transform:translateY(-2px);
+            box-shadow:0 6px 28px rgba(255,107,43,0.5);
+        }
+        .error{
+            background:rgba(231,76,60,0.1);
+            border:1px solid rgba(231,76,60,0.3);
+            border-radius:10px;
+            padding:12px 16px;
+            font-size:0.88rem;
+            color:var(--red);
+            margin-bottom:16px;
+            text-align:center;
+        }
+        .back{
+            display:block;
+            text-align:center;
+            margin-top:20px;
+            font-size:0.8rem;
+            color:var(--muted);
+            text-decoration:none;
+            transition:color 0.2s;
+        }
+        .back:hover{color:var(--orange);}
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="logo">
+        <span class="logo-icon">🔐</span>
+        <h1>Адмін панель</h1>
+        <p>Тільки для Хокаге</p>
+    </div>
+
+    {% if error %}
+    <div class="error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+        <label class="label" for="password">Пароль адміна</label>
+        <input
+            type="password"
+            id="password"
+            name="password"
+            class="input"
+            placeholder="••••••••"
+            autofocus
+            required
+        />
+        <button type="submit" class="btn">🔓 Увійти</button>
+    </form>
+
+    <a href="{{ url_for('login') }}" class="back">← Повернутись до входу</a>
+</div>
+</body>
+</html>
