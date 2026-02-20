@@ -148,6 +148,7 @@
         <ul class="todo-list" id="todoList">
             {% for todo in todos %}
             <li class="todo-item {% if todo.done %}done{% endif %} rank-{{ todo.rank }}" data-id="{{ todo.id }}" style="animation-delay: {{ loop.index0 * 0.04 }}s">
+                <span class="drag-handle" title="Перетягнути">&#x2630;</span>
                 <button class="todo-checkbox" onclick="toggleTodo({{ todo.id }})" title="Змінити статус">
                     {% if todo.done %}
                         <span class="check-icon checked">&#x2726;</span>
@@ -167,6 +168,17 @@
                         {% if todo.done %}
                             <span class="todo-status-done">Завершено ✓</span>
                         {% endif %}
+                    </div>
+                    <button class="subtasks-toggle" onclick="toggleSubtasks(event, {{ todo.id }})">
+                        <span>&#x25B6;</span> Підзадачі <span class="subtask-progress" id="sub-progress-{{ todo.id }}"></span>
+                    </button>
+                    <div class="subtask-progress-bar"><div class="subtask-progress-fill" id="sub-bar-{{ todo.id }}" style="width:0%"></div></div>
+                    <div class="subtasks-section" id="subtasks-{{ todo.id }}">
+                        <ul class="subtask-list" id="subtask-list-{{ todo.id }}"></ul>
+                        <div class="subtask-add-row">
+                            <input type="text" class="subtask-input" id="subtask-input-{{ todo.id }}" placeholder="Нова підзадача..." maxlength="200" onkeydown="if(event.key==='Enter')addSubtask({{ todo.id }})" />
+                            <button class="subtask-add-btn" onclick="addSubtask({{ todo.id }})">+</button>
+                        </div>
                     </div>
                 </div>
                 <div class="todo-actions">
@@ -256,6 +268,7 @@
         <span>на Flask</span>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script>
     // ─── Sound effects ──────────────────────────────────────────────
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -573,6 +586,126 @@
         searchTimeout = setTimeout(() => loadTodos(), 400);
     });
 
+
+    // ─── Drag & Drop ─────────────────────────────────────────────────
+    const todoList = document.getElementById('todoList');
+    if (todoList && typeof Sortable !== 'undefined') {
+        Sortable.create(todoList, {
+            animation: 200,
+
+            draggable: '.todo-item',
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
+            onEnd: async () => {
+                const items = Array.from(todoList.children).map((el, i) => ({
+                    id: parseInt(el.dataset.id),
+                    position: i
+                }));
+                await fetchJSON('/api/reorder', {
+                    method: 'POST',
+                    body: JSON.stringify(items)
+                });
+            }
+        });
+    }
+
+    // ─── Subtasks ─────────────────────────────────────────────────────
+    const subtasksCache = {};
+
+    async function toggleSubtasks(e, todoId) {
+        e.stopPropagation();
+        const section = document.getElementById('subtasks-' + todoId);
+        const btn = e.currentTarget;
+        const arrow = btn.querySelector('span');
+
+        if (section.classList.contains('open')) {
+            section.classList.remove('open');
+            arrow.innerHTML = '&#x25B6;';
+            return;
+        }
+
+        section.classList.add('open');
+        arrow.innerHTML = '&#x25BC;';
+        await loadSubtasks(todoId);
+    }
+
+    async function loadSubtasks(todoId) {
+        const { ok, data } = await fetchJSON('/api/subtasks/' + todoId);
+        if (!ok) return;
+        subtasksCache[todoId] = data;
+        renderSubtasks(todoId, data);
+    }
+
+    function renderSubtasks(todoId, subtasks) {
+        const list = document.getElementById('subtask-list-' + todoId);
+        if (!list) return;
+
+        list.innerHTML = subtasks.map(s => `
+            <li class="subtask-item" data-sub-id="${s.id}">
+                <button class="subtask-check ${s.done ? 'done' : ''}" onclick="toggleSubtask(${todoId}, ${s.id})">
+                    ${s.done ? '&#x2726;' : '&#x25CB;'}
+                </button>
+                <span class="subtask-text ${s.done ? 'done' : ''}">${escapeHTML(s.text)}</span>
+                <button class="subtask-del" onclick="deleteSubtask(${todoId}, ${s.id})">&#x2716;</button>
+            </li>
+        `).join('');
+
+        updateSubtaskProgress(todoId, subtasks);
+    }
+
+    function updateSubtaskProgress(todoId, subtasks) {
+        const total = subtasks.length;
+        const done = subtasks.filter(s => s.done).length;
+        const pct = total > 0 ? Math.round(done / total * 100) : 0;
+
+        const progress = document.getElementById('sub-progress-' + todoId);
+        const bar = document.getElementById('sub-bar-' + todoId);
+
+        if (progress) progress.textContent = total > 0 ? `(${done}/${total})` : '';
+        if (bar) bar.style.width = pct + '%';
+    }
+
+    async function addSubtask(todoId) {
+        const input = document.getElementById('subtask-input-' + todoId);
+        const text = input.value.trim();
+        if (!text) return;
+
+        const { ok, data } = await fetchJSON('/api/subtasks/' + todoId + '/add', {
+            method: 'POST',
+            body: JSON.stringify({ text })
+        });
+
+        if (ok) {
+            playSound('add');
+            input.value = '';
+            if (!subtasksCache[todoId]) subtasksCache[todoId] = [];
+            subtasksCache[todoId].push(data);
+            renderSubtasks(todoId, subtasksCache[todoId]);
+        } else {
+            playSound('error');
+        }
+    }
+
+    async function toggleSubtask(todoId, subId) {
+        const { ok, data } = await fetchJSON('/api/subtasks/toggle/' + subId, { method: 'POST' });
+        if (!ok) return;
+        playSound(data.done ? 'done' : 'undone');
+        if (subtasksCache[todoId]) {
+            subtasksCache[todoId] = subtasksCache[todoId].map(s => s.id === subId ? data : s);
+            renderSubtasks(todoId, subtasksCache[todoId]);
+        }
+    }
+
+    async function deleteSubtask(todoId, subId) {
+        const { ok } = await fetchJSON('/api/subtasks/delete/' + subId, { method: 'DELETE' });
+        if (!ok) return;
+        playSound('delete');
+        if (subtasksCache[todoId]) {
+            subtasksCache[todoId] = subtasksCache[todoId].filter(s => s.id !== subId);
+            renderSubtasks(todoId, subtasksCache[todoId]);
+        }
+    }
     // ─── Keyboard shortcuts ─────────────────────────────────────────
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {

@@ -62,6 +62,15 @@ def init_db():
 
         CREATE INDEX IF NOT EXISTS idx_todos_user ON todos(user_id);
         CREATE INDEX IF NOT EXISTS idx_todos_done ON todos(user_id, done);
+
+        CREATE TABLE IF NOT EXISTS subtasks (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            todo_id    INTEGER NOT NULL REFERENCES todos(id) ON DELETE CASCADE,
+            text       TEXT NOT NULL,
+            done       INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_subtasks_todo ON subtasks(todo_id);
     """)
     db.commit()
     db.close()
@@ -290,7 +299,7 @@ def index():
 
 
 # ─── API helpers ────────────────────────────────────────────────────
-ORDER_SQL = " ORDER BY done ASC, CASE rank WHEN 'S' THEN 0 WHEN 'A' THEN 1 WHEN 'B' THEN 2 WHEN 'C' THEN 3 ELSE 4 END, created_at DESC"
+ORDER_SQL = " ORDER BY done ASC, position ASC, created_at DESC"
 
 
 def get_todo_or_404(db, todo_id, user_id):
@@ -425,8 +434,84 @@ def api_todos():
     return jsonify([row_to_dict(r) for r in rows])
 
 
+
+# --- API: Reorder ---
+@app.route("/api/reorder", methods=["POST"])
+@login_required
+def api_reorder():
+    user_id = get_user_id()
+    items = request.get_json(silent=True) or []
+    db = get_db()
+    for item in items:
+        db.execute("UPDATE todos SET position=? WHERE id=? AND user_id=?",
+                   (item["position"], item["id"], user_id))
+    db.commit()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/subtasks/<int:todo_id>")
+@login_required
+def api_get_subtasks(todo_id):
+    user_id = get_user_id()
+    db = get_db()
+    get_todo_or_404(db, todo_id, user_id)
+    rows = db.execute(
+        "SELECT * FROM subtasks WHERE todo_id=? ORDER BY created_at ASC",
+        (todo_id,)
+    ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route("/api/subtasks/<int:todo_id>/add", methods=["POST"])
+@login_required
+def api_add_subtask(todo_id):
+    user_id = get_user_id()
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "").strip()
+    if not text:
+        return jsonify({"error": "Текст не може бути порожнім"}), 400
+    db = get_db()
+    get_todo_or_404(db, todo_id, user_id)
+    cur = db.execute(
+        "INSERT INTO subtasks (todo_id, text, done, created_at) VALUES (?, ?, 0, ?)",
+        (todo_id, text, datetime.now().isoformat())
+    )
+    db.commit()
+    row = db.execute("SELECT * FROM subtasks WHERE id=?", (cur.lastrowid,)).fetchone()
+    return jsonify(dict(row)), 201
+
+
+@app.route("/api/subtasks/toggle/<int:sub_id>", methods=["POST"])
+@login_required
+def api_toggle_subtask(sub_id):
+    user_id = get_user_id()
+    db = get_db()
+    sub = db.execute("SELECT * FROM subtasks WHERE id=?", (sub_id,)).fetchone()
+    if not sub:
+        return jsonify({"error": "Не знайдено"}), 404
+    get_todo_or_404(db, sub["todo_id"], user_id)
+    new_done = 0 if sub["done"] else 1
+    db.execute("UPDATE subtasks SET done=? WHERE id=?", (new_done, sub_id))
+    db.commit()
+    return jsonify(dict(db.execute("SELECT * FROM subtasks WHERE id=?", (sub_id,)).fetchone()))
+
+
+@app.route("/api/subtasks/delete/<int:sub_id>", methods=["DELETE"])
+@login_required
+def api_delete_subtask(sub_id):
+    user_id = get_user_id()
+    db = get_db()
+    sub = db.execute("SELECT * FROM subtasks WHERE id=?", (sub_id,)).fetchone()
+    if not sub:
+        return jsonify({"error": "Не знайдено"}), 404
+    get_todo_or_404(db, sub["todo_id"], user_id)
+    db.execute("DELETE FROM subtasks WHERE id=?", (sub_id,))
+    db.commit()
+    return jsonify({"ok": True})
+
 with app.app_context():
     init_db()
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(debug=True, host="0.0.0.0", port=port)
