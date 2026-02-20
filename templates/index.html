@@ -367,6 +367,17 @@
                     ${deadlineHTML}
                     ${statusHTML}
                 </div>
+                <button class="subtasks-toggle" onclick="toggleSubtasks(event, ${t.id})">
+                    <span>&#x25B6;</span> Підзадачі <span class="subtask-progress" id="sub-progress-${t.id}"></span>
+                </button>
+                <div class="subtask-progress-bar"><div class="subtask-progress-fill" id="sub-bar-${t.id}" style="width:0%"></div></div>
+                <div class="subtasks-section" id="subtasks-${t.id}">
+                    <ul class="subtask-list" id="subtask-list-${t.id}"></ul>
+                    <div class="subtask-add-row">
+                        <input type="text" class="subtask-input" id="subtask-input-${t.id}" placeholder="Нова підзадача..." maxlength="200" onkeydown="if(event.key==='Enter')addSubtask(${t.id})" />
+                        <button class="subtask-add-btn" onclick="addSubtask(${t.id})">+</button>
+                    </div>
+                </div>
             </div>
             <div class="todo-actions">
                 <button class="btn btn-edit" onclick="startEdit(${t.id})" title="Редагувати">✎</button>
